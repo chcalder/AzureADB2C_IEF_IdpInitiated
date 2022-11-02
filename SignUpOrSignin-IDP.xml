@@ -1,0 +1,113 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<TrustFrameworkPolicy
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns="http://schemas.microsoft.com/online/cpim/schemas/2013/06"
+  PolicySchemaVersion="0.3.0.0"
+  TenantId="<tenant name>.onmicrosoft.com"
+  PolicyId="B2C_1A_signup_signin_saml-idp"
+  PublicPolicyUri="http://<tenant name>.onmicrosoft.com/B2C_1A_signup_signin_saml-idp">
+
+  <BasePolicy>
+    <TenantId><tenant name>.onmicrosoft.com</TenantId>
+    <PolicyId>B2C_1A_TrustFrameworkExtensions-IDP</PolicyId>
+  </BasePolicy>
+
+   <UserJourneys>
+    <!-- Add user journey -->
+    <UserJourney Id="SignUpOrSignInIdP">
+      <OrchestrationSteps>
+   
+        <OrchestrationStep Order="1" Type="CombinedSignInAndSignUp" ContentDefinitionReferenceId="api.signuporsignin">
+          <ClaimsProviderSelections>
+            <ClaimsProviderSelection ValidationClaimsExchangeId="LocalAccountSigninEmailExchange" />
+          </ClaimsProviderSelections>
+          <ClaimsExchanges>
+            <ClaimsExchange Id="LocalAccountSigninEmailExchange" TechnicalProfileReferenceId="SelfAsserted-LocalAccountSignin-Email" />
+          </ClaimsExchanges>
+        </OrchestrationStep>
+
+        <OrchestrationStep Order="2" Type="ClaimsExchange">
+          <Preconditions>
+            <Precondition Type="ClaimsExist" ExecuteActionsIf="true">
+              <Value>objectId</Value>
+              <Action>SkipThisOrchestrationStep</Action>
+            </Precondition>
+          </Preconditions>
+          <ClaimsExchanges>
+            <ClaimsExchange Id="SignUpWithLogonEmailExchange" TechnicalProfileReferenceId="LocalAccountSignUpWithLogonEmail" />
+          </ClaimsExchanges>
+        </OrchestrationStep>
+
+        <!-- This step reads any user attributes that we may not have received when in the token. -->
+        <OrchestrationStep Order="3" Type="ClaimsExchange">
+          <ClaimsExchanges>
+            <ClaimsExchange Id="AADUserReadWithObjectId" TechnicalProfileReferenceId="AAD-UserReadUsingObjectId" />
+          </ClaimsExchanges>
+        </OrchestrationStep>
+        
+        <!-- OVERWRITTEN BY SAML ISSUANCE -->
+     <OrchestrationStep Order="4" Type="ClaimsExchange">
+        <ClaimsExchanges>
+          <ClaimsExchange Id="ClaimsTransformation-CreateFirstFourClaim" TechnicalProfileReferenceId="ClaimsTransformation-CreateFirstFourClaim" />          
+        </ClaimsExchanges>
+      </OrchestrationStep>
+      <OrchestrationStep Order="5" Type="ClaimsExchange">
+        <ClaimsExchanges>         
+          <ClaimsExchange Id="ClaimsTransformation-ChangeCase" TechnicalProfileReferenceId="ClaimsTransformation-ChangeCase" />
+        </ClaimsExchanges>
+      </OrchestrationStep>
+      <OrchestrationStep Order="6" Type="SendClaims" CpimIssuerTechnicalProfileReferenceId="Saml2AssertionIssuer"/>
+      </OrchestrationSteps>
+      <ClientDefinition ReferenceId="DefaultWeb" />
+      </UserJourney> 
+  </UserJourneys>
+
+  <RelyingParty>
+    <DefaultUserJourney ReferenceId="SignUpOrSignInIdP" />
+    <TechnicalProfile Id="PolicyProfile">
+      <DisplayName>PolicyProfile</DisplayName>
+      <Protocol Name="SAML2"/>
+      <Metadata>
+        <!-- Azure B2C SAML federation metadata entityid: https://chcalderlabsb2c.b2clogin.com/chcalderlabsb2c.onmicrosoft.com/B2C_1A_signup_signin_saml-idp/samlp/metadata -->
+        <!-- <Item Key="IssuerUri">https://chcalderlabsb2c.onmicrosoft.com/</Item> -->
+        <!-- Relying party app federation metadata -->
+        <!-- <Item Key="PartnerEntity">https://samltestapp2.azurewebsites.net/Metadata</Item>  -->
+        <Item Key="PartnerEntity">
+          <![CDATA[<?xml version="1.0" encoding="UTF-8"?> 				   
+            <EntityDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata" ID="id123456789" entityID="https://samltestapp2.azurewebsites.net" validUntil="2099-12-31T23:59:59Z">
+            <SPSSODescriptor AuthnRequestsSigned="false" WantAssertionsSigned="false" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+            <SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://samltestapp2.azurewebsites.net/logout" ResponseLocation="https://samltestapp2.azurewebsites.net/logout"/>
+            <NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</NameIDFormat>
+            <AssertionConsumerService index="0" isDefault="true" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://samltestapp2.azurewebsites.net/SP/AssertionConsumer"/>
+            </SPSSODescriptor>
+            <IDPSSODescriptor WantAuthnRequestsSigned="false" WantAssertionsSigned="false" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+            <SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://samltestapp2.azurewebsites.net/logout" ResponseLocation="https://samltestapp2.azurewebsites.net/logout"/>
+            <NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</NameIDFormat>
+            <SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://samltestapp2.azurewebsites.net/IDP/AuthNRequest"/>
+            </IDPSSODescriptor>
+            </EntityDescriptor>
+		      ]]>
+          </Item>
+        <Item Key="IdpInitiatedProfileEnabled">true</Item>   
+        <Item Key="WantsSignedRequests">false</Item>                  
+      </Metadata> 
+      <OutputClaims>
+        <OutputClaim ClaimTypeReferenceId="objectId" PartnerClaimType="SubjectNamingInfo" DefaultValue="NOSUBSET" />        
+        <OutputClaim ClaimTypeReferenceId="givenName" />
+        <OutputClaim ClaimTypeReferenceId="surname" PartnerClaimType= "SUBJECT" />              <!-- subject-->  
+        <OutputClaim ClaimTypeReferenceId="signInName" PartnerClaimType="CUSTOMER_ID" />       
+        <OutputClaim ClaimTypeReferenceId="surname" PartnerClaimType="FIRST_FOUR" />     <!-- first four characters of primary acct holder lastname -->
+      </OutputClaims>
+      <SubjectNamingInfo ClaimType="SubjectNamingInfo" Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient"/>
+    </TechnicalProfile>
+  </RelyingParty>
+
+</TrustFrameworkPolicy>
+
+<!--
+
+  Idp-initiated SSO URL : https://<tenant name>.b2clogin.com/chcalderlabsb2c.onmicrosoft.com/B2C_1A_signup_signin_saml-idp/generic/login?EntityId=https://samltestapp2.azurewebsites.net
+  Federation Metadata: https://<tenant name>.b2clogin.com/chcalderlabsb2c.onmicrosoft.com/B2C_1A_signup_signin_saml-idp/samlp/metadata
+  
+-->
